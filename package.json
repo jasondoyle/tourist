@@ -6,6 +6,7 @@
     "type": "git",
     "url": "https://github.com/tomsteele/cetera.git"
   },
+  "bin": "./bin/cetera",
   "author": "Tom Steele",
   "license": "MIT",
   "dependencies": {
