@@ -1,7 +1,7 @@
 cetera
 ======
 
-Take screenshots of website. Uses <a href="https://github.com/brenden/node-webshot">node-webshot</a>, which in turn uses <a href="http://phantomjs.org/">phantomjs</a>.
+Take screenshots of sites. Uses <a href="https://github.com/brenden/node-webshot">node-webshot</a>, which in turn uses <a href="http://phantomjs.org/">phantomjs</a>.
 
 Images are saved as base64 strings of pngs.
 
