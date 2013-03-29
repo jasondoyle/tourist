@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Copyright (c) 2012 Tom Steele
+// Copyright (c) 2013 Tom Steele
 // See the file license.txt for copying permission
 
 var fs = require('fs');
