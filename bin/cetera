@@ -62,7 +62,7 @@ var options = {
 };
 
 // read file in and create list of urls
-var urls = fs.readFileSync(argv._[0]).toString().trim().split("\n");
+var urls = fs.readFileSync(argv._[0], {encoding: 'utf8'}).trim().split("\n");
 var results = [];
 var bar = new Progress('requests [:bar] :percent :etas'.green, { complete: '=', width: 20, total: urls.length });
 
