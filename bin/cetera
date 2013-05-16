@@ -58,7 +58,7 @@ var options = {
     height: argv.h,
     userAgent: argv.u,
     phantomPath: argv.p
-  }
+  },
 };
 
 // read file in and create list of urls
@@ -73,7 +73,8 @@ q.drain = complete;
 function getScreenShot(url, cb) {
   var img = '';
   // request the page once first to get around phantomjs 401 bug
-  request(url, function(err, res) {
+  var ropts = {'url': url, 'strictSSL': false};
+  request(ropts, function(err, res) {
     // if response was not 401 grab a screenshot
     if (!err && res.statusCode !== 401) {
       webshot(url, options, function(err, rs) {
@@ -82,6 +83,10 @@ function getScreenShot(url, cb) {
           if (!string.match(/Error/)) {
             img += data.toString('base64');
           }
+        });
+        rs.on('error', function(err) {
+          bar.tick();
+          cb();
         });
         rs.on('end', function() {
           bar.tick();
