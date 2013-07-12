@@ -1,21 +1,23 @@
 {
   "name": "cetera",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Use phantomjs to creep on webpages",
   "preferGlobal": true,
   "repository": {
     "type": "git",
     "url": "https://github.com/tomsteele/cetera.git"
   },
-  "bin": "./bin/cetera",
+  "bin": {
+    "cetera": "./bin/cmd.js"
+  },
   "author": "Tom Steele",
   "license": "MIT",
   "dependencies": {
-    "optimist": "~0.3.5",
-    "webshot": "~0.2.0",
-    "progress": "~0.1.0",
-    "async": "~0.2.6",
-    "colors": "~0.6.0-1",
-    "request": "~2.16.6"
+    "optimist": "*",
+    "webshot": "*",
+    "progress": "*",
+    "async": "*",
+    "colors": "*",
+    "request": "*"
   }
 }
