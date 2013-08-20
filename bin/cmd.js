@@ -167,7 +167,7 @@ function htmlOut(results) {
 
   results.forEach(function(r) {
     string += '<p><a href="' + r.url + '">' + r.url + "</a></p>";
-    if (r.href) { string += '<p>=> <a href="' + r.href + '">' + r.href + "</a></p>"; }
+    if (r.href != r.url) { string += '<p>=> <a href="' + r.href + '">' + r.href + "</a></p>"; }
     string += '<img class="outline" src="data:image/png;base64,' + r.img + '"/><br />';
   });
 
