@@ -85,11 +85,12 @@ var bar = new Progress('requests [:bar] :percent :etas'.green, { complete: '=', 
 function getScreenShot(url, cb) {
   var img = '';
   // request the page once first to get around phantomjs 401 bug
-  var ropts = {'url': url, 'strictSSL': false};
+  var ropts = {'url': url, 'strictSSL': false, headers:{'User-Agent': argv.u}};
   request(ropts, function(err, res) {
     // if response was not 401 grab a screenshot
     if (!err && res.statusCode !== 401) {
-      webshot(url, options, function(err, rs) {
+      var href = res.request['uri'].href;
+      webshot(href, options, function(err, rs) {
         if (err) {
           bar.tick();
           cb();
@@ -107,7 +108,7 @@ function getScreenShot(url, cb) {
           });
           rs.on('end', function() {
             bar.tick();
-            results.push({"url": url, "img": img});
+            results.push({"url": url, "href": href, "img": img});
             cb();
           });
         }
@@ -166,6 +167,7 @@ function htmlOut(results) {
 
   results.forEach(function(r) {
     string += '<p><a href="' + r.url + '">' + r.url + "</a></p>";
+    if (r.href) { string += '<p>=> <a href="' + r.href + '">' + r.href + "</a></p>"; }
     string += '<img class="outline" src="data:image/png;base64,' + r.img + '"/><br />';
   });
 
