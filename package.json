@@ -1,6 +1,6 @@
 {
   "name": "cetera",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Use phantomjs to creep on webpages",
   "preferGlobal": true,
   "repository": {
@@ -15,9 +15,9 @@
   "dependencies": {
     "optimist": "*",
     "webshot": "*",
-    "progress": "*",
     "async": "*",
     "colors": "*",
-    "request": "*"
+    "request": "*",
+    "pace": "0.0.4"
   }
 }
