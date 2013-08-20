@@ -19,7 +19,6 @@ Cetera takes multiple options and a single argument for a file containing newlin
         cetera [options] <url file>
 
         Options:
-             -c, --concurrency  Amount of concurrent requests  [default: 1000]
              -u, --useragent    User-Agent string              [default: "Mozilla/5.0..]
              -h, --height       Screenshot height              [default: 400]
              -w, --width        Screenshot width               [default: 400]
