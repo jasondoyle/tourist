@@ -8,7 +8,6 @@ var webshot = require('webshot');
 var request = require('request');
 var color = require('colors');
 var winston = require('winston');
-
 var argv = require('optimist')
   .demand(1)
   .describe('c', 'Amount of concurrent requests')
@@ -82,7 +81,7 @@ async.eachLimit(urls, argv.c, makeRequest, complete);
 function makeRequest(url, cb) {
   // request the page once first to get around phantomjs 401 bug
   var opts = {'url': url, 'strictSSL': false, headers:{'User-Agent': argv.u}, timeout: argv.t};
-  href = '';
+  var href = '';
   request(opts, handleResponse);
 
   function handleResponse(err, res) {
@@ -108,9 +107,7 @@ function makeRequest(url, cb) {
           img += data.toString('base64');
         }
       });
-      rs.on('end', function() {
-        process.nextTick(pushResult);
-      });
+      rs.on('end', pushResult);
     }
 
     function handleError() {
@@ -133,59 +130,51 @@ function makeRequest(url, cb) {
  }
 
 function complete(err) {
-  console.log('\n');
   if (argv.a) {
     console.log('appending to file', argv.a);
-  }
-  else {
+  } else {
     console.log('saving results to file', argv.o);
   }
 
   if (argv.j) {
     jsonOut(results);
-  }
-  else {
+  } else {
     htmlOut(results);
   }
   process.exit(0);
 }
 
 function jsonOut(results) {
-  var string = JSON.stringify(results, null, " ");
+  var jsonData = JSON.stringify(results, null, " ");
   if (argv.o !== 'index.html') {
-    fs.writeFileSync(argv.o, string);
-  }
-  else if (argv.a) {
-    fs.appendFileSync(argv.a, string);
-  }
-  else {
-    console.log(string);
+    fs.writeFileSync(argv.o, jsonData);
+  } else if (argv.a) {
+    fs.appendFileSync(argv.a, jsonData);
+  } else {
+    console.log(jsonData);
   }
 }
 
 function htmlOut(results) {
   var css = '.outline {border: 1px solid black;} html,body {padding: 10px;}';
-  var string = '';
+  var htmlData = '';
   if (!argv.a) {
-    string += '<html lang="en"><head><style>' + css + '</style></head><body>';
+    htmlData += '<html lang="en"><head><style>' + css + '</style></head><body>';
   }
-
   results.forEach(function(r) {
-    string += '<p><a href="' + r.url + '">' + r.url + '</a></p>';
-    if (r.href !== r.url) { 
-       string += '<p>=> <a href="' + r.href + '">' + r.href + '</a></p>';
+    htmlData += '<p><a href="' + r.url + '">' + r.url + '</a>';
+    if (r.href !== r.url) {
+      htmlData += ' => <a href="' + r.href + '">' + r.href + '</a></p>';
+    } else {
+      htmlData += '</p>';
     }
-    string += '<img class="outline" src="data:image/png;base64,' + r.img + '"/><br />';
+    htmlData += '<img class="outline" src="data:image/png;base64,' + r.img + '"/><br />';
   });
-
-  if (!argv.a) {
-    string += '</body></html>';
-  }
   if (argv.a) {
-    fs.appendFileSync(argv.a, string);
-  }
-  else {
-    fs.writeFileSync(argv.o, string);
+    fs.appendFileSync(argv.a, htmlData);
+  } else {
+    htmlData += '</body></html>';
+    fs.writeFileSync(argv.o, htmlData);
   }
 }
 
