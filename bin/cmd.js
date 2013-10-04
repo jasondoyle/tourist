@@ -55,13 +55,14 @@ var argv = require('optimist')
 
 // really should never do this, but there is some wonkyness in the webshot callback with errors.
 // it can callback with an error, and then still emit events.
-process.on('uncaughtException', function(err) {});
+process.on('uncaughtException', function(err) {
+});
 
 // phantomjs webshot options
 var options = {
   screenSize: {
     width: argv.w,
-    height: argv.h,
+    height: argv.h
   },
   phantomConfig: {
     'ignore-ssl-errors': 'true'
@@ -74,19 +75,14 @@ var options = {
 // read file in and create list of urls
 var urls = fs.readFileSync(argv._[0], {encoding: 'utf8'}).trim().split("\n");
 var results = [];
-
-// async queue
-var q = async.queue(getScreenShot, argv.c);
-q.push(urls);
-q.drain = complete;
-
-// progress bar 
 var pace = require('pace')(urls.length);
+
+async.eachLimit(urls, argv.c, getScreenShot, complete);
 
 function getScreenShot(url, cb) {
   var img = '';
   // request the page once first to get around phantomjs 401 bug
-  var ropts = {'url': url, 'strictSSL': false, headers:{'User-Agent': argv.u}, timeout: arg.t};
+  var ropts = {'url': url, 'strictSSL': false, headers:{'User-Agent': argv.u}, timeout: argv.t};
   request(ropts, function(err, res) {
      // if response was not 401 grab a screenshot
      if (!err && res.statusCode !== 401) {
@@ -124,7 +120,7 @@ function getScreenShot(url, cb) {
  }
 
 // append or write to file
-function complete() {
+function complete(err) {
   console.log('\n');
   if (argv.a) {
     console.log('appending to file', argv.a);
