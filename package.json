@@ -18,6 +18,7 @@
     "async": "*",
     "colors": "*",
     "request": "*",
-    "pace": "0.0.4"
+    "pace": "0.0.4",
+    "winston": "~0.7.2"
   }
 }
