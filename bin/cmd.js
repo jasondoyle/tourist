@@ -7,6 +7,7 @@ var async = require('async');
 var webshot = require('webshot');
 var request = require('request');
 var color = require('colors');
+var winston = require('winston');
 
 var argv = require('optimist')
   .demand(1)
@@ -53,13 +54,12 @@ var argv = require('optimist')
   .check(checkArgs)
   .usage("$0 [options] <url file>").argv;
 
-// really should never do this, but there is some wonkyness in the webshot callback with errors.
-// it can callback with an error, and then still emit events.
 process.on('uncaughtException', function(err) {
+  winston.error('Uncaught Exception', err.message);
 });
 
 // phantomjs webshot options
-var options = {
+var wopts = {
   screenSize: {
     width: argv.w,
     height: argv.h
@@ -77,49 +77,61 @@ var urls = fs.readFileSync(argv._[0], {encoding: 'utf8'}).trim().split("\n");
 var results = [];
 var pace = require('pace')(urls.length);
 
-async.eachLimit(urls, argv.c, getScreenShot, complete);
+async.eachLimit(urls, argv.c, makeRequest, complete);
 
-function getScreenShot(url, cb) {
-  var img = '';
+function makeRequest(url, cb) {
   // request the page once first to get around phantomjs 401 bug
-  var ropts = {'url': url, 'strictSSL': false, headers:{'User-Agent': argv.u}, timeout: argv.t};
-  request(ropts, function(err, res) {
-     // if response was not 401 grab a screenshot
-     if (!err && res.statusCode !== 401) {
-      var href = res.request['uri'].href;
-      webshot(href, options, function(err, rs) {
-        if (err) {
-          pace.op();
-          cb();
-        }
-        else {
-          rs.on('data', function(data) {
-            var string = data.toString('base64');
-            if (!string.match(/Error/)) {
-              img += data.toString('base64');
-            }
-          });
-         rs.on('error', function(err) {
-            pace.op();
-            cb();
-          });
-          rs.on('end', function() {
-            pace.op();
-            results.push({"url": url, "href": href, "img": img});
-            cb();
-          });
-        }
-      });
-    }
-    // else if error or a 401 just skip it
-    else {
+  var opts = {'url': url, 'strictSSL': false, headers:{'User-Agent': argv.u}, timeout: argv.t};
+  href = '';
+  request(opts, handleResponse);
+
+  function handleResponse(err, res) {
+    if (!err && res.statusCode !== 401) {
+      href = res.request.uri.href;
+      webshot(href, wopts, handleWebshot);
+    } else {
       pace.op();
       cb();
     }
-  });
+  }
+
+  function handleWebshot(err, rs) {
+    var img = '';
+    var cbCalled = false;
+    if (err) {
+      handleError();
+    } else {
+      rs.on('error', handleError);
+      rs.on('data', function(data) {
+        var string = data.toString('base64');
+        if (!string.match(/Error/)) {
+          img += data.toString('base64');
+        }
+      });
+      rs.on('end', function() {
+        process.nextTick(pushResult);
+      });
+    }
+
+    function handleError() {
+      if (!cbCalled) {
+        cbCalled = true;
+        pace.op();
+        cb();
+      }
+    }
+
+    function pushResult() {
+      results.push({"url": url, "href": href, "img": img});
+      if (!cbCalled) {
+        cbCalled = true;
+        pace.op();
+        cb();
+      }
+    }
+  }
  }
 
-// append or write to file
 function complete(err) {
   console.log('\n');
   if (argv.a) {
@@ -138,7 +150,6 @@ function complete(err) {
   process.exit(0);
 }
 
-// output the results object as json
 function jsonOut(results) {
   var string = JSON.stringify(results, null, " ");
   if (argv.o !== 'index.html') {
@@ -152,19 +163,17 @@ function jsonOut(results) {
   }
 }
 
-// create a html file with the results
 function htmlOut(results) {
-  // gentle css for styling
-  var css = ".outline {border: 1px solid black;} html,body {padding: 10px;}"
-
+  var css = '.outline {border: 1px solid black;} html,body {padding: 10px;}';
+  var string = '';
   if (!argv.a) {
-    var string = '<html lang="en"><head><style>' + css + '</style></head><body>'
+    string += '<html lang="en"><head><style>' + css + '</style></head><body>';
   }
 
   results.forEach(function(r) {
-    string += '<p><a href="' + r.url + '">' + r.url + "</a></p>";
+    string += '<p><a href="' + r.url + '">' + r.url + '</a></p>';
     if (r.href !== r.url) { 
-       string += '<p>=> <a href="' + r.href + '">' + r.href + "</a></p>"; 
+       string += '<p>=> <a href="' + r.href + '">' + r.href + '</a></p>';
     }
     string += '<img class="outline" src="data:image/png;base64,' + r.img + '"/><br />';
   });
@@ -180,7 +189,6 @@ function htmlOut(results) {
   }
 }
 
-// check argv arguments for errors
 function checkArgs(argv) {
   if (!fs.existsSync(argv._[0])) {
     throw 'url file does not exist'.red;
