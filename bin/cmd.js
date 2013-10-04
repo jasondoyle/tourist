@@ -11,6 +11,10 @@ var color = require('colors');
 var argv = require('optimist')
   .demand(1)
   .describe('c', 'Amount of concurrent requests')
+  .options('c', {
+           alias: 'concurrency',
+           default: 10
+   })
   .describe('u', 'User-Agent string')
   .options('u', {
            alias: 'useragent',
@@ -72,7 +76,7 @@ var urls = fs.readFileSync(argv._[0], {encoding: 'utf8'}).trim().split("\n");
 var results = [];
 
 // async queue
-var q = async.queue(getScreenShot, 10);
+var q = async.queue(getScreenShot, argv.c);
 q.push(urls);
 q.drain = complete;
 
