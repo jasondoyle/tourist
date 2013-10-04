@@ -86,7 +86,7 @@ var pace = require('pace')(urls.length);
 function getScreenShot(url, cb) {
   var img = '';
   // request the page once first to get around phantomjs 401 bug
-  var ropts = {'url': url, 'strictSSL': false, headers:{'User-Agent': argv.u}};
+  var ropts = {'url': url, 'strictSSL': false, headers:{'User-Agent': argv.u}, timeout: arg.t};
   request(ropts, function(err, res) {
      // if response was not 401 grab a screenshot
      if (!err && res.statusCode !== 401) {
