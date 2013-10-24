@@ -6,7 +6,11 @@ Take screenshots of sites. Uses <a href="https://github.com/brenden/node-webshot
 Images are saved as base64 strings of pngs.
 
 ###Installation###
-After installing phantomjs to $PATH:
+Install from npm:
+
+        $ npm install -g tourist
+
+Alternatively, you can clone the repository, install the required modules using npm, and run from bin/:
 
         $ git clone https://github.com/tomsteele/tourist.git
         $ npm -g install tourist
