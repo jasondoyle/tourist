@@ -1,14 +1,14 @@
 {
-  "name": "cetera",
-  "version": "0.0.4",
-  "description": "Use phantomjs to creep on webpages",
+  "name": "tourist",
+  "version": "0.0.1",
+  "description": "Use phantomjs to take pictures on webpages",
   "preferGlobal": true,
   "repository": {
     "type": "git",
-    "url": "https://github.com/tomsteele/cetera.git"
+    "url": "https://github.com/tomsteele/tourist.git"
   },
   "bin": {
-    "cetera": "./bin/cmd.js"
+    "tourist": "./bin/cmd.js"
   },
   "author": "Tom Steele",
   "license": "MIT",
