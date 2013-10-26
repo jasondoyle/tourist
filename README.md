@@ -13,8 +13,8 @@ Install from npm:
 Alternatively, you can clone the repository, install the required modules using npm, and run from bin/:
 
         $ git clone https://github.com/tomsteele/tourist.git
-        $ npm -g install tourist
-        $ tourist -h
+        $ npm install
+        $ bin/cmd.js
 
 
 ###Usage###
