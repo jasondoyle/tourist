@@ -20,7 +20,6 @@
     "request": "*",
     "pace": "0.0.4",
     "winston": "~0.7.2",
-    "checksum": "*",
-    "path": "*"
+    "checksum": "*"
   }
 }
