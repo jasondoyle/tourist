@@ -6,6 +6,7 @@ var fs = require('fs');
 var async = require('async');
 var webshot = require('webshot');
 var request = require('request');
+var path = require('path');
 var color = require('colors');
 var winston = require('winston');
 var checksum = require('checksum');
@@ -85,22 +86,28 @@ function profile(callback) {
   function makeRequest(url, cb) {
     // sent first request to profile website and get app url for webshot
     var opts = {'url': url, 'strictSSL': false, headers:{'User-Agent': argv.u}, timeout: argv.t};
-    var href = '';
+
     request(opts, handleResponse);
 
     function handleResponse(err, res) {
+      var loginRegex = new RegExp(/log(\s)?in|log(\s)?on|sign(\s)?in|sign(\s)?on/im)
+      var interestRegex = [loginRegex,
+                           new RegExp(/<(\s)?form/gim),
+                           new RegExp(/<(\s)?input/gim),
+                           new RegExp(/href(\s)?=/gim),
+                           new RegExp(/window\.location/gim)];
+
       if (!err && res.statusCode !== 401) {
         website = new Object();
         website.url = url;
         website.href = res.request.uri.href;
         website.interest = 0;
+        website.login = false;
         website.hostname = res.request.uri.hostname;
-        patterns = [new RegExp(/<(\s)?form/gim),
-                    new RegExp(/<(\s)?input/gim),
-                    new RegExp(/log(\s)?in|log(\s)?on|sign(\s)?in|sign(\s)?on/im),
-                    new RegExp(/href(\s)?=/gim),
-                    new RegExp(/window\.location/gim)];
-        patterns.forEach(function(p) {
+        if (res.body.match(loginRegex)) {
+          website.login = true;
+        }
+        interestRegex.forEach(function(p) {
           if (res.body.match(p)) {
             website.interest += (res.body.match(p)).length;
           }
@@ -185,77 +192,21 @@ function jsonOut(results) {
 function htmlOut(results) {
   var css = '.outline {border: 1px solid black;} html,body {padding: 10px;}';
   var htmlData = '';
-  // embedded javascript
-  var js= ' function doSort(attr) { \
-              var sorted = []; \
-              var spanEls = document.getElementsByTagName("span"); \
-              var attrVals = getUniqueAttributes(attr, spanEls); \
-              if (attr == "interest") { \
-                attrVals.sort(function(a,b){return b-a}); \
-              } else { \
-                attrVals.sort(); \
-              } \
-              attrVals.forEach(function(val) { \
-                for (var i = 0; i < spanEls.length; i++) { \
-                  if (val == spanEls[i].getAttribute(attr)) { \
-                    sorted.push(spanEls[i]); \
-                  } \
-                } \
-              }); \
-              writeHtml(sorted); \
-            } \
-            function hideDups(checked) { \
-              var spanEls = document.getElementsByTagName("span"); \
-              var attrVals = getUniqueAttributes("checksum", spanEls); \
-              var unique = []; \
-              if (checked) { \
-                attrVals.forEach(function(val) { \
-                  for (var i = 0; i < spanEls.length; i++) { \
-                    var elVal = spanEls[i].getAttribute("checksum"); \
-                    if (val == elVal) { \
-                      if (unique.indexOf(elVal) > -1) { \
-                        spanEls[i].style.display = "none"; \
-                      } else { \
-                        unique.push(elVal); \
-                      } \
-                    } \
-                  } \
-                }); \
-              } else { \
-                for (var i = 0; i < spanEls.length; i++) { \
-                  spanEls[i].style.display = ""; \
-                } \
-              } \
-            } \
-            function getUniqueAttributes(attr, spanEls) { \
-              var vals = []; \
-              for (var i = 0; i < spanEls.length; i++) { \
-                vals.push(spanEls[i].getAttribute(attr)); \
-              } \
-              function onlyUnique(value, index, self) { \
-                return self.indexOf(value) === index; \
-              } \
-              return vals.filter(onlyUnique); \
-            } \
-            function writeHtml(spanEls) { \
-              var parent = document.getElementById("container"); \
-              parent.innerHtml = ""; \
-              spanEls.forEach(function(span) { \
-                parent.appendChild(span); \
-              }); \
-            }';
+  var jsTemplate = path.join(path.dirname(require.main.filename), '../lib/client.js');
+  var js = fs.readFileSync(jsTemplate, { encoding: 'utf8' });
 
   if (!argv.a) {
     htmlData += '<html lang="en"><head><style>' + css + '</style>';
     htmlData += '<script type="text/javascript">' + js + '</script></head><body><form id="sortApp"><u>Sort Apps:</u><br>';
     htmlData += '<input type="radio" name="sort" value="interest" onclick="doSort(this.value);">Interest<br>';
     htmlData += '<input type="radio" name="sort" value="hostname" onclick="doSort(this.value);">Hostname<br>';
-    htmlData += '<input type="radio" name="sort" value="checksum" onclick="doSort(this.value);">Duplicate<br><br>';
+    htmlData += '<input type="radio" name="sort" value="login" onclick="doSort(this.value);">Login form<br><br>'
     htmlData += '<input type="checkbox" name="dups" onclick="hideDups(this.checked);">Hide Duplicate Apps</form>';
     htmlData += '<div id="container">';
   }
   results.forEach(function(r) {
-    htmlData += '<span interest="' + r.interest + '" checksum="' + r.checksum + '" hostname="' + r.hostname + '"><p>';
+    htmlData += '<span interest="' + r.interest + '" checksum="' + r.checksum + '" ';
+    htmlData += 'login="' + r.login + '" hostname="' + r.hostname + '"><p>';
     htmlData += '<a href="' + r.url + '">' + r.url + '</a>';
     if (r.href !== r.url) {
       htmlData += ' => <a href="' + r.href + '">' + r.href + '</a></p>';
