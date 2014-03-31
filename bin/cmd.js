@@ -90,7 +90,7 @@ function profile(callback) {
     request(opts, handleResponse);
 
     function handleResponse(err, res) {
-      var loginRegex = new RegExp(/log(\s)?in|log(\s)?on|sign(\s)?in|sign(\s)?on/im)
+      var loginRegex = new RegExp(/log(\s)?in|log(\s)?on|sign(\s)?in|sign(\s)?on/im);
       var interestRegex = [loginRegex,
                            new RegExp(/<(\s)?form/gim),
                            new RegExp(/<(\s)?input/gim),
@@ -98,7 +98,7 @@ function profile(callback) {
                            new RegExp(/window\.location/gim)];
 
       if (!err && res.statusCode !== 401) {
-        website = new Object();
+        var website = {};
         website.url = url;
         website.href = res.request.uri.href;
         website.interest = 0;
@@ -200,7 +200,7 @@ function htmlOut(results) {
     htmlData += '<script type="text/javascript">' + js + '</script></head><body><form id="sortApp"><u>Sort Apps:</u><br>';
     htmlData += '<input type="radio" name="sort" value="interest" onclick="doSort(this.value);">Interest<br>';
     htmlData += '<input type="radio" name="sort" value="hostname" onclick="doSort(this.value);">Hostname<br>';
-    htmlData += '<input type="radio" name="sort" value="login" onclick="doSort(this.value);">Login form<br><br>'
+    htmlData += '<input type="radio" name="sort" value="login" onclick="doSort(this.value);">Login form<br><br>';
     htmlData += '<input type="checkbox" name="dups" onclick="hideDups(this.checked);">Hide Duplicate Apps</form>';
     htmlData += '<div id="container">';
   }
