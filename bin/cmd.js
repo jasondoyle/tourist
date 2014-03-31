@@ -256,8 +256,7 @@ function htmlOut(results) {
     htmlData += '<script type="text/javascript">' + js + '</script></head><body><form id="sortApp"><u>Sort Apps:</u><br>';
     htmlData += '<input type="radio" name="sort" value="interest" onclick="doSort(this.value);">Interest<br>';
     htmlData += '<input type="radio" name="sort" value="hostname" onclick="doSort(this.value);">Hostname<br>';
-    htmlData += '<input type="radio" name="sort" value="login" onclick="doSort(this.value);">Login form<br>'
-    htmlData += '<input type="radio" name="sort" value="checksum" onclick="doSort(this.value);">Duplicate<br><br>';
+    htmlData += '<input type="radio" name="sort" value="login" onclick="doSort(this.value);">Login form<br><br>'
     htmlData += '<input type="checkbox" name="dups" onclick="hideDups(this.checked);">Hide Duplicate Apps</form>';
     htmlData += '<div id="container">';
   }
