@@ -8,12 +8,13 @@ var webshot = require('webshot');
 var request = require('request');
 var color = require('colors');
 var winston = require('winston');
+var checksum = require('checksum');
 var argv = require('optimist')
   .demand(1)
   .describe('c', 'Amount of concurrent requests')
   .options('c', {
            alias: 'concurrency',
-           default: 10
+           default: 6
    })
   .describe('u', 'User-Agent string')
   .options('u', {
@@ -65,7 +66,7 @@ var wopts = {
   },
   phantomConfig: {
     'ignore-ssl-errors': 'true'
-  }, 
+  },
   userAgent: argv.u,
   phantomPath: argv.p,
   timeout: argv.t
@@ -76,60 +77,86 @@ var urls = fs.readFileSync(argv._[0], {encoding: 'utf8'}).trim().split("\n");
 var results = [];
 var pace = require('pace')(urls.length);
 
-async.eachLimit(urls, argv.c, makeRequest, complete);
+async.series([profile, screenshot], complete);
 
-function makeRequest(url, cb) {
-  // request the page once first to get around phantomjs 401 bug
-  var opts = {'url': url, 'strictSSL': false, headers:{'User-Agent': argv.u}, timeout: argv.t};
-  var href = '';
-  request(opts, handleResponse);
+function profile(callback) {
+  async.eachLimit(urls, argv.c, makeRequest, callback);
 
-  function handleResponse(err, res) {
-    if (!err && res.statusCode !== 401) {
-      href = res.request.uri.href;
-      webshot(href, wopts, handleWebshot);
-    } else {
+  function makeRequest(url, cb) {
+    // sent first request to profile website and get app url for webshot
+    var opts = {'url': url, 'strictSSL': false, headers:{'User-Agent': argv.u}, timeout: argv.t};
+    var href = '';
+    request(opts, handleResponse);
+
+    function handleResponse(err, res) {
+      if (!err && res.statusCode !== 401) {
+        website = new Object();
+        website.url = url;
+        website.href = res.request.uri.href;
+        website.interest = 0;
+        website.hostname = res.request.uri.hostname;
+        patterns = [new RegExp(/<(\s)?form/gim),
+                    new RegExp(/<(\s)?input/gim),
+                    new RegExp(/log(\s)?in|log(\s)?on|sign(\s)?in|sign(\s)?on/im),
+                    new RegExp(/href(\s)?=/gim),
+                    new RegExp(/window\.location/gim)];
+        patterns.forEach(function(p) {
+          if (res.body.match(p)) {
+            website.interest += (res.body.match(p)).length;
+          }
+        });
+        results.push(website);
+      }
+      else {
+        // output url if error
+      }
       pace.op();
       cb();
     }
-  }
+  } 
+}
 
-  function handleWebshot(err, rs) {
-    var img = '';
-    var cbCalled = false;
-    if (err) {
-      handleError();
-    } else {
-      rs.on('error', handleError);
-      rs.on('data', function(data) {
-        var string = data.toString('base64');
-        if (!string.match(/Error/)) {
-          img += data.toString('base64');
+function screenshot(callback) {
+  //reset pacer
+  pace.total = results.length;
+  pace.current = 0;
+
+  async.eachLimit(results, argv.c, doWebshot, callback);
+
+  function doWebshot(r, cb) {
+    webshot(r.href, wopts, function(err, rs) {
+      var img = '';
+      var cbCalled = false;
+      if (err) {
+        handleError();
+      } else {
+        rs.on('error', handleError);
+        rs.on('data', function(data) {
+          var string = data.toString('base64');
+          if (!string.match(/Error/)) {
+            img += data.toString('base64');
+          }
+        });
+        rs.on('end', function() {
+          r.img = img;
+          r.checksum = checksum(img);
+          pace.op();
+          cb();
+        });
+      }
+
+      function handleError() {
+        if (!cbCalled) {
+          cbCalled = true;
+          pace.op();
+          cb();
         }
-      });
-      rs.on('end', pushResult);
-    }
-
-    function handleError() {
-      if (!cbCalled) {
-        cbCalled = true;
-        pace.op();
-        cb();
       }
-    }
-
-    function pushResult() {
-      results.push({"url": url, "href": href, "img": img});
-      if (!cbCalled) {
-        cbCalled = true;
-        pace.op();
-        cb();
-      }
-    }
+    });
   }
- }
+}
 
-function complete(err) {
+function complete() {
   if (argv.a) {
     console.log('appending to file', argv.a);
   } else {
@@ -158,22 +185,89 @@ function jsonOut(results) {
 function htmlOut(results) {
   var css = '.outline {border: 1px solid black;} html,body {padding: 10px;}';
   var htmlData = '';
+  // embedded javascript
+  var js= ' function doSort(attr) { \
+              var sorted = []; \
+              var spanEls = document.getElementsByTagName("span"); \
+              var attrVals = getUniqueAttributes(attr, spanEls); \
+              if (attr == "interest") { \
+                attrVals.sort(function(a,b){return b-a}); \
+              } else { \
+                attrVals.sort(); \
+              } \
+              attrVals.forEach(function(val) { \
+                for (var i = 0; i < spanEls.length; i++) { \
+                  if (val == spanEls[i].getAttribute(attr)) { \
+                    sorted.push(spanEls[i]); \
+                  } \
+                } \
+              }); \
+              writeHtml(sorted); \
+            } \
+            function hideDups(checked) { \
+              var spanEls = document.getElementsByTagName("span"); \
+              var attrVals = getUniqueAttributes("checksum", spanEls); \
+              var unique = []; \
+              if (checked) { \
+                attrVals.forEach(function(val) { \
+                  for (var i = 0; i < spanEls.length; i++) { \
+                    var elVal = spanEls[i].getAttribute("checksum"); \
+                    if (val == elVal) { \
+                      if (unique.indexOf(elVal) > -1) { \
+                        spanEls[i].style.display = "none"; \
+                      } else { \
+                        unique.push(elVal); \
+                      } \
+                    } \
+                  } \
+                }); \
+              } else { \
+                for (var i = 0; i < spanEls.length; i++) { \
+                  spanEls[i].style.display = ""; \
+                } \
+              } \
+            } \
+            function getUniqueAttributes(attr, spanEls) { \
+              var vals = []; \
+              for (var i = 0; i < spanEls.length; i++) { \
+                vals.push(spanEls[i].getAttribute(attr)); \
+              } \
+              function onlyUnique(value, index, self) { \
+                return self.indexOf(value) === index; \
+              } \
+              return vals.filter(onlyUnique); \
+            } \
+            function writeHtml(spanEls) { \
+              var parent = document.getElementById("container"); \
+              parent.innerHtml = ""; \
+              spanEls.forEach(function(span) { \
+                parent.appendChild(span); \
+              }); \
+            }';
+
   if (!argv.a) {
-    htmlData += '<html lang="en"><head><style>' + css + '</style></head><body>';
+    htmlData += '<html lang="en"><head><style>' + css + '</style>';
+    htmlData += '<script type="text/javascript">' + js + '</script></head><body><form id="sortApp"><u>Sort Apps:</u><br>';
+    htmlData += '<input type="radio" name="sort" value="interest" onclick="doSort(this.value);">Interest<br>';
+    htmlData += '<input type="radio" name="sort" value="hostname" onclick="doSort(this.value);">Hostname<br>';
+    htmlData += '<input type="radio" name="sort" value="checksum" onclick="doSort(this.value);">Duplicate<br><br>';
+    htmlData += '<input type="checkbox" name="dups" onclick="hideDups(this.checked);">Hide Duplicate Apps</form>';
+    htmlData += '<div id="container">';
   }
   results.forEach(function(r) {
-    htmlData += '<p><a href="' + r.url + '">' + r.url + '</a>';
+    htmlData += '<span interest="' + r.interest + '" checksum="' + r.checksum + '" hostname="' + r.hostname + '"><p>';
+    htmlData += '<a href="' + r.url + '">' + r.url + '</a>';
     if (r.href !== r.url) {
       htmlData += ' => <a href="' + r.href + '">' + r.href + '</a></p>';
     } else {
       htmlData += '</p>';
     }
-    htmlData += '<img class="outline" src="data:image/png;base64,' + r.img + '"/><br />';
+    htmlData += '<img class="outline" src="data:image/png;base64,' + r.img + '"/></span>';
   });
   if (argv.a) {
     fs.appendFileSync(argv.a, htmlData);
   } else {
-    htmlData += '</body></html>';
+    htmlData += '</div></body></html>';
     fs.writeFileSync(argv.o, htmlData);
   }
 }
