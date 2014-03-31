@@ -1,6 +1,6 @@
 {
   "name": "tourist",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Use phantomjs to take pictures of the web. Twirly hat optional.",
   "preferGlobal": true,
   "repository": {
