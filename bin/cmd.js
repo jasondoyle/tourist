@@ -85,21 +85,27 @@ function profile(callback) {
   function makeRequest(url, cb) {
     // sent first request to profile website and get app url for webshot
     var opts = {'url': url, 'strictSSL': false, headers:{'User-Agent': argv.u}, timeout: argv.t};
-    var href = '';
+
     request(opts, handleResponse);
 
     function handleResponse(err, res) {
+      var loginRegex = new RegExp(/log(\s)?in|log(\s)?on|sign(\s)?in|sign(\s)?on/im)
+      var interestRegex = [loginRegex,
+                           new RegExp(/<(\s)?form/gim),
+                           new RegExp(/<(\s)?input/gim),
+                           new RegExp(/href(\s)?=/gim),
+                           new RegExp(/window\.location/gim)];
+
       if (!err && res.statusCode !== 401) {
         website = new Object();
         website.url = url;
         website.href = res.request.uri.href;
         website.interest = 0;
+        website.login = false;
         website.hostname = res.request.uri.hostname;
-        patterns = [new RegExp(/<(\s)?form/gim),
-                    new RegExp(/<(\s)?input/gim),
-                    new RegExp(/log(\s)?in|log(\s)?on|sign(\s)?in|sign(\s)?on/im),
-                    new RegExp(/href(\s)?=/gim),
-                    new RegExp(/window\.location/gim)];
+        if (res.body.match(loginRegex)) {
+          website.login = true;
+        }
         patterns.forEach(function(p) {
           if (res.body.match(p)) {
             website.interest += (res.body.match(p)).length;
@@ -250,12 +256,14 @@ function htmlOut(results) {
     htmlData += '<script type="text/javascript">' + js + '</script></head><body><form id="sortApp"><u>Sort Apps:</u><br>';
     htmlData += '<input type="radio" name="sort" value="interest" onclick="doSort(this.value);">Interest<br>';
     htmlData += '<input type="radio" name="sort" value="hostname" onclick="doSort(this.value);">Hostname<br>';
+    htmlData += '<input type="radio" name="sort" value="login" onclick="doSort(this.value);">Login form<br>'
     htmlData += '<input type="radio" name="sort" value="checksum" onclick="doSort(this.value);">Duplicate<br><br>';
     htmlData += '<input type="checkbox" name="dups" onclick="hideDups(this.checked);">Hide Duplicate Apps</form>';
     htmlData += '<div id="container">';
   }
   results.forEach(function(r) {
-    htmlData += '<span interest="' + r.interest + '" checksum="' + r.checksum + '" hostname="' + r.hostname + '"><p>';
+    htmlData += '<span interest="' + r.interest + '" checksum="' + r.checksum + '" ';
+    htmlData += 'login="' + r.login + '" hostname="' + r.hostname + '"><p>';
     htmlData += '<a href="' + r.url + '">' + r.url + '</a>';
     if (r.href !== r.url) {
       htmlData += ' => <a href="' + r.href + '">' + r.href + '</a></p>';
