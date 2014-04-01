@@ -16,7 +16,7 @@ var argv = require('optimist')
     .describe('c', 'Amount of concurrent requests')
     .options('c', {
         alias: 'concurrency',
-        default: 6
+        default: 10
     })
     .describe('u', 'User-Agent string')
     .options('u', {
