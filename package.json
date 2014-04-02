@@ -5,12 +5,12 @@
   "preferGlobal": true,
   "repository": {
     "type": "git",
-    "url": "https://github.com/tomsteele/tourist.git"
+    "url": "https://github.com/jasondoyle/tourist.git"
   },
   "bin": {
     "tourist": "./bin/cmd.js"
   },
-  "author": "Tom Steele",
+  "author": "Jason Doyle",
   "license": "MIT",
   "dependencies": {
     "optimist": "*",
@@ -21,5 +21,10 @@
     "pace": "0.0.4",
     "winston": "~0.7.2",
     "checksum": "*"
-  }
+  },
+  "keywords": [
+    "phantomjs",
+    "webshot",
+    "screenshot"
+  ]
 }
