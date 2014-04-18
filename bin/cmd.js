@@ -100,7 +100,7 @@ function profile(callback) {
         request(opts, handleResponse);
 
         function handleResponse(err, res) {
-            var loginRegex = new RegExp(/log(\s)?in|log(\s)?on|sign(\s)?in|sign(\s)?on/im);
+            var loginRegex = new RegExp(/(log|sign)(\s)?(in|on)/im);
             var interestRegex = [loginRegex,
                 new RegExp(/<(\s)?form/gim),
                 new RegExp(/<(\s)?input/gim),
