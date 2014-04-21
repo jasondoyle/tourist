@@ -2,7 +2,6 @@
 
 // Copyright (c) 2014 Jason Doyle
 // See the file license.txt for copying permission
-
 var fs = require('fs');
 var async = require('async');
 var webshot = require('webshot');
@@ -97,6 +96,7 @@ function profile(callback) {
             timeout: argv.t
         };
 
+        request = request.defaults({ jar: request.jar() }); // fixes EventEmitter memory leak bug
         request(opts, handleResponse);
 
         function handleResponse(err, res) {
